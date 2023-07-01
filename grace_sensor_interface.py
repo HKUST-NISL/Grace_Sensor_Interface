@@ -92,6 +92,7 @@ class SensorInterface:
         self.__asr_reconfig_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['asr_reconfig']) 
 
         #Camera configs
+        self.__cam_ang_sub = rospy.Subscriber(self.__config_data['Ros']['camera_angle_topic'], std_msgs.msg.Float32, self.__cameraAngCallback, queue_size=self.__config_data['Ros']['queue_size'])
         self.__cam_cfg_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['camera_cfg_server'])
         self.setCameraAngle(self.__config_data['Vision']['default_grace_chest_cam_angle'])
 
@@ -112,7 +113,8 @@ class SensorInterface:
     '''
         VISION-CAM-ROS Helpers
     '''
-
+    def __cameraAngCallback(self,msg):
+        self.setCameraAngle(msg.data)
 
 
 

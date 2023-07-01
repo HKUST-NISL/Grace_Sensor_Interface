@@ -4,7 +4,8 @@ Ros:
   dynamic_reconfig_request_timeout: 0.5
 
   camera_cfg_server: "/hr/perception/camera_angle"
-  
+  camera_angle_topic: "/grace_proj/set_cam_angle"
+
   asr_words_topic: "/hr/perception/hear/words"
   asr_interim_speech_topic: "/hr/perception/hear/interim_speech"
   asr_fake_sentence_topic: "/hr/perception/hear/fake_sentence"
