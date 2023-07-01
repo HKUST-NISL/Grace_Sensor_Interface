@@ -24,11 +24,6 @@ import hr_msgs.srv
 import std_msgs
 
 
-#Specifics
-import utils.TTSExec
-import utils.ExpressionExec
-import utils.GestureExec
-
 
 
 
@@ -83,7 +78,7 @@ class SensorInterface:
         signal(SIGINT, handle_sigint)
         self.__logger = setupLogger(
                     logging.DEBUG, 
-                    logging.INFO, 
+                    logging.DEBUG, 
                     self.__class__.__name__,
                     "./logs/log_" + datetime.now().strftime("%a_%d_%b_%Y_%I_%M_%S_%p"))
         path = "./config/config.yaml"
@@ -91,21 +86,36 @@ class SensorInterface:
         self.__nh = rospy.init_node(self.__config_data['Ros']['node_name'])
 
         #Ros io
-        self.asr_words_sub = rospy.Subscriber(self.__config_data['Ros']['asr_words_topic'], hr_msgs.msg.ChatMessage, self.__asrWordsCallback, queue_size=self.__config_data['Ros']['queue_size'])
-        self.asr_interim_sub = rospy.Subscriber(self.__config_data['Ros']['asr_interim_speech_topic'], hr_msgs.msg.ChatMessage, self.__asrInterimCallback, queue_size=self.__config_data['Ros']['queue_size'])
-        self.asr_fake_sentence_pub = rospy.Publisher(self.__config_data['Ros']['asr_fake_sentence_topic'], hr_msgs.msg.ChatMessage, queue_size=self.__config_data['Ros']['queue_size'])
+        self.__asr_words_sub = rospy.Subscriber(self.__config_data['Ros']['asr_words_topic'], hr_msgs.msg.ChatMessage, self.__asrWordsCallback, queue_size=self.__config_data['Ros']['queue_size'])
+        self.__asr_interim_sub = rospy.Subscriber(self.__config_data['Ros']['asr_interim_speech_topic'], hr_msgs.msg.ChatMessage, self.__asrInterimCallback, queue_size=self.__config_data['Ros']['queue_size'])
+        self.__asr_fake_sentence_pub = rospy.Publisher(self.__config_data['Ros']['asr_fake_sentence_topic'], hr_msgs.msg.ChatMessage, queue_size=self.__config_data['Ros']['queue_size'])
         self.__asr_reconfig_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['asr_reconfig']) 
 
+        #Camera configs
+        self.__cam_cfg_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['camera_cfg_server'])
+        self.setCameraAngle(self.__config_data['Vision']['default_grace_chest_cam_angle'])
+
         #ASR Configs
-        self.__fake_sentence_rate = self.__config_data['Ros']['asr_fake_sentence_check_rate']
-        self.__fake_sentence_window = self.__config_data['Ros']['asr_fake_sentence_window']
-        self.__prime_lang = self.__config_data['Ros']['primary_language_code']
-        self.__second_lang = self.__config_data['Ros']['secondary_language_code']
-        self.__asr_model = self.__config_data['Ros']['asr_model']
-        self.__continuous_asr = self.__config_data['Ros']['asr_continuous']
+        self.__fake_sentence_rate = self.__config_data['ASR']['asr_fake_sentence_check_rate']
+        self.__fake_sentence_window = self.__config_data['ASR']['asr_fake_sentence_window']
+        self.__prime_lang = self.__config_data['ASR']['primary_language_code']
+        self.__second_lang = self.__config_data['ASR']['secondary_language_code']
+        self.__asr_model = self.__config_data['ASR']['asr_model']
+        self.__continuous_asr = self.__config_data['ASR']['asr_continuous']
 
         #Initialize asr
         self.__asrInit()
+
+
+
+
+    '''
+        VISION-CAM-ROS Helpers
+    '''
+
+
+
+
 
 
     '''
@@ -148,7 +158,7 @@ class SensorInterface:
                 #Check the timestamp of the latest interim speech
                 if( rospy.get_time() - self.__latest_interim_time_stamp >= self.__fake_sentence_window ):
                     #Publish a fake sentence  
-                    self.asr_fake_sentence_pub.publish(self.__latest_interim)
+                    self.__asr_fake_sentence_pub.publish(self.__latest_interim)
 
                     #Log
                     self.__logger.info('Publishing FAKE asr sentence %s' % {self.__latest_interim.utterance})
@@ -160,6 +170,15 @@ class SensorInterface:
 
 
     #Interface
+    def setCameraAngle(self, angle):
+		#tilt chest cam to a given angle
+        try:
+            self.__logger.info("Configuring camera angle to %f." % angle)
+
+            self.__cam_cfg_client.update_configuration({"motor_angle":angle})
+        except Exception as e:
+            self.__logger_error(e)
+
     def mainLoop(self):
         rate = rospy.Rate(1)
 

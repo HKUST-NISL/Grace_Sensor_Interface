@@ -1,0 +1,33 @@
+01/07/2023 13:20:13 117 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Chuck.).
+01/07/2023 13:20:13 118 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chuck.'}
+01/07/2023 13:20:13 119 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Chest.).
+01/07/2023 13:20:13 121 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest.'}
+01/07/2023 13:20:13 123 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Chapter.).
+01/07/2023 13:20:13 123 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chapter.'}
+01/07/2023 13:20:13 124 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (me.).
+01/07/2023 13:20:13 125 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest.'}
+01/07/2023 13:20:13 126 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (test.).
+01/07/2023 13:20:13 126 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest near me.'}
+01/07/2023 13:20:13 126 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest'}
+01/07/2023 13:20:13 127 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest near me.'}
+01/07/2023 13:20:13 127 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Chest'}
+01/07/2023 13:20:13 127 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'How to test test test test.'}
+01/07/2023 13:20:13 325 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'How to test test test test.'}
+01/07/2023 13:20:13 424 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'How to test test test, test'}
+01/07/2023 13:20:13 424 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (test,).
+01/07/2023 13:20:14 016 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'How to test test test, test test.'}
+01/07/2023 13:20:14 720 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Test).
+01/07/2023 13:20:15 041 SensorInterface INFO SensorInterface.__fakeSentenceThread(149) Publishing FAKE asr sentence {'How to test test test, test test.'}
+01/07/2023 13:20:17 654 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Turn.).
+01/07/2023 13:20:17 655 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Turn.'}
+01/07/2023 13:20:17 656 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Charles.).
+01/07/2023 13:20:17 658 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Charles.'}
+01/07/2023 13:20:17 659 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (Cast.).
+01/07/2023 13:20:17 659 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Cast.'}
+01/07/2023 13:20:17 660 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (test.).
+01/07/2023 13:20:17 661 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Cast.'}
+01/07/2023 13:20:17 662 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Trust test.'}
+01/07/2023 13:20:18 019 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Test test, test.'}
+01/07/2023 13:20:18 020 SensorInterface DEBUG SensorInterface.__asrWordsCallback(123) Latest WORD: (test,).
+01/07/2023 13:20:18 523 SensorInterface DEBUG SensorInterface.__asrInterimCallback(129) Latest INTERIM {'Test test, test.'}
+01/07/2023 13:20:19 541 SensorInterface INFO SensorInterface.__fakeSentenceThread(149) Publishing FAKE asr sentence {'Test test, test.'}
