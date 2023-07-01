@@ -10,6 +10,8 @@ import logging
 import sys
 from datetime import datetime
 import time
+from inspect import getsourcefile
+from os.path import abspath
 
 #ros
 import dynamic_reconfigure.client
@@ -81,7 +83,7 @@ class SensorInterface:
                     logging.DEBUG, 
                     self.__class__.__name__,
                     "./logs/log_" + datetime.now().strftime("%a_%d_%b_%Y_%I_%M_%S_%p"))
-        path = "./config/config.yaml"
+        path = abspath(getsourcefile(lambda:0)) + "./config/config.yaml"
         self.__config_data = loadConfig(path)
         self.__nh = rospy.init_node(self.__config_data['Ros']['node_name'])
 
