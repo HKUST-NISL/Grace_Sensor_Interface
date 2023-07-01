@@ -1,0 +1,18 @@
+Ros:
+  node_name: "grace_sensor_interface"
+  queue_size: 100
+
+  #ASR Configs
+  english_language_code: &id_lang_eng 'en-US' 
+  cantonese_language_code: &id_lang_yue 'yue-Hant-HK' 
+  primary_language_code: *id_lang_yue
+  secondary_language_code: *id_lang_yue
+
+  asr_words_topic: "/hr/perception/hear/words"
+  asr_interim_speech_topic: "/hr/perception/hear/interim_speech"
+  asr_fake_sentence_topic: "/hr/perception/hear/fake_sentence"
+  asr_fake_sentence_check_rate: 30
+  asr_fake_sentence_window: 1
+  asr_reconfig: "/hr/perception/speech_recognizer"
+  asr_continuous: false
+  asr_model: "latest_long"
