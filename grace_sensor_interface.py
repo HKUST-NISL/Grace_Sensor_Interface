@@ -95,14 +95,18 @@ class SensorInterface:
         self.asr_interim_sub = rospy.Subscriber(self.__config_data['Ros']['asr_interim_speech_topic'], hr_msgs.msg.ChatMessage, self.__asrInterimCallback, queue_size=self.__config_data['Ros']['queue_size'])
         self.asr_fake_sentence_pub = rospy.Publisher(self.__config_data['Ros']['asr_fake_sentence_topic'], hr_msgs.msg.ChatMessage, queue_size=self.__config_data['Ros']['queue_size'])
         self.__asr_reconfig_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['asr_reconfig']) 
-        self.__asrInit()
 
         #ASR Configs
+        self.__fake_sentence_rate = self.__config_data['Ros']['asr_fake_sentence_check_rate']
         self.__fake_sentence_window = self.__config_data['Ros']['asr_fake_sentence_window']
         self.__prime_lang = self.__config_data['Ros']['primary_language_code']
         self.__second_lang = self.__config_data['Ros']['secondary_language_code']
         self.__asr_model = self.__config_data['Ros']['asr_model']
         self.__continuous_asr = self.__config_data['Ros']['asr_continuous']
+
+        #Initialize asr
+        self.__asrInit()
+
 
     '''
     #   ASR-ROS-Helpers
@@ -135,14 +139,14 @@ class SensorInterface:
         
 
     def __fakeSentenceThread(self):
-        rate = rospy.Rate(self.__config_data['Ros']['asr_fake_sentence_check_rate'])
+        rate = rospy.Rate(self.__fake_sentence_rate)
 
         while True:
             rate.sleep()
 
             if( self.__start_faking ):#If we have started to fake a sentence
                 #Check the timestamp of the latest interim speech
-                if( rospy.get_time() - self.__latest_interim_time_stamp >= self.__config_data['Ros']['asr_fake_sentence_window'] ):
+                if( rospy.get_time() - self.__latest_interim_time_stamp >= self.__fake_sentence_window ):
                     #Publish a fake sentence  
                     self.asr_fake_sentence_pub.publish(self.__latest_interim)
 
@@ -154,5 +158,17 @@ class SensorInterface:
                     self.__latest_interim = None
 
 
+
+    #Interface
+    def mainLoop(self):
+        rate = rospy.Rate(1)
+
+        while True:
+            rate.sleep()
+
+
+if __name__ == '__main__':
+    sensor_interface = SensorInterface()
+    sensor_interface.mainLoop()
 
 
