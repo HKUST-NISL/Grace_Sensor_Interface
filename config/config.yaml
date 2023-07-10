@@ -11,14 +11,17 @@ Ros:
   asr_fake_sentence_topic: "/hr/perception/hear/fake_sentence"
   asr_reconfig: "/hr/perception/speech_recognizer"
 
+  vad_config: "/hr/perception/whisper_asr"
+
+
+  dynam_config_timeout: 0.5
+
+
 Vision:
-  default_grace_chest_cam_angle: 0.55
+  default_grace_chest_cam_angle: 0.35
 
 
 ASR:
-
-
-
   #ASR Configs
   english_language_code: &id_lang_eng 'en-US' 
   cantonese_language_code: &id_lang_yue 'yue-Hant-HK' 

@@ -95,7 +95,9 @@ class SensorInterface:
 
         #Camera configs
         self.__cam_ang_sub = rospy.Subscriber(self.__config_data['Ros']['camera_angle_topic'], std_msgs.msg.Float32, self.__cameraAngCallback, queue_size=self.__config_data['Ros']['queue_size'])
-        self.__cam_cfg_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['camera_cfg_server'])
+        self.__cam_cfg_client = dynamic_reconfigure.client.Client(
+            self.__config_data['Ros']['camera_cfg_server'],
+            timeout= self.__config_data['Ros']['dynam_config_timeout'])
         self.setCameraAngle(self.__config_data['Vision']['default_grace_chest_cam_angle'])
 
         #ASR Configs
@@ -105,9 +107,14 @@ class SensorInterface:
         self.__second_lang = self.__config_data['ASR']['secondary_language_code']
         self.__asr_model = self.__config_data['ASR']['asr_model']
         self.__continuous_asr = self.__config_data['ASR']['asr_continuous']
+        self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
+                            self.__config_data['Ros']['vad_config'], 
+                            timeout= self.__config_data['Ros']['dynam_config_timeout'])
+
 
         #Initialize asr
         self.__asrInit()
+        self.__enableVAD()
 
 
 
@@ -136,7 +143,6 @@ class SensorInterface:
         self.__fake_sentence_thread = threading.Thread(target = self.__fakeSentenceThread, daemon=False)
         self.__fake_sentence_thread.start()
 
-
     def __asrWordsCallback(self, msg):
         self.__latest_word = msg.utterance
         self.__logger.debug('Latest WORD: (%s).' % self.__latest_word)
@@ -151,7 +157,6 @@ class SensorInterface:
         self.__start_faking = True
         self.__latest_interim_time_stamp = rospy.get_time()
         
-
     def __fakeSentenceThread(self):
         rate = rospy.Rate(self.__fake_sentence_rate)
 
@@ -171,6 +176,8 @@ class SensorInterface:
                     self.__start_faking = False
                     self.__latest_interim = None
 
+    def __enableVAD(self):
+        self.__vad_dynamic_config_client.update_configuration({"enabled":True, "continuous": True})
 
 
     #Interface
