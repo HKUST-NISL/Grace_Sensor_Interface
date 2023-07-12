@@ -27,16 +27,6 @@ import std_msgs
 
 
 
-
-
-#Load configs
-def loadConfig(path):
-    #Load configs
-    with open(path, "r") as config_file:
-        config_data = yaml.load(config_file, Loader=yaml.FullLoader)
-        # print("Config file loaded")
-    return config_data
-
 #Create Logger
 def setupLogger(file_log_level, terminal_log_level, logger_name, log_file_name):
     log_formatter = logging.Formatter('%(asctime)s %(msecs)03d %(name)s %(levelname)s %(funcName)s(%(lineno)d) %(message)s', 
@@ -75,7 +65,7 @@ class SensorInterface:
     __latest_interim = None
     __latest_interim_time_stamp = 0
 
-    def __init__(self):
+    def __init__(self, config_data):
         #miscellaneous
         signal(SIGINT, handle_sigint)
         self.__logger = setupLogger(
@@ -83,38 +73,59 @@ class SensorInterface:
                     logging.DEBUG, 
                     self.__class__.__name__,
                     "./logs/log_" + datetime.now().strftime("%a_%d_%b_%Y_%I_%M_%S_%p"))
-        path = os.path.dirname(os.path.realpath(getsourcefile(lambda:0))) + "/config/config.yaml"
-        self.__config_data = loadConfig(path)
-        self.__nh = rospy.init_node(self.__config_data['Ros']['node_name'])
+
+        self.__config_data = config_data
+        self.__nh = rospy.init_node(self.__config_data['Sensors']['Ros']['node_name'])
 
         #Ros io
-        self.__asr_words_sub = rospy.Subscriber(self.__config_data['Ros']['asr_words_topic'], hr_msgs.msg.ChatMessage, self.__asrWordsCallback, queue_size=self.__config_data['Ros']['queue_size'])
-        self.__asr_interim_sub = rospy.Subscriber(self.__config_data['Ros']['asr_interim_speech_topic'], hr_msgs.msg.ChatMessage, self.__asrInterimCallback, queue_size=self.__config_data['Ros']['queue_size'])
-        self.__asr_fake_sentence_pub = rospy.Publisher(self.__config_data['Ros']['asr_fake_sentence_topic'], hr_msgs.msg.ChatMessage, queue_size=self.__config_data['Ros']['queue_size'])
-        self.__asr_reconfig_client = dynamic_reconfigure.client.Client(self.__config_data['Ros']['asr_reconfig']) 
+        self.__asr_words_sub = rospy.Subscriber(
+                                self.__config_data['HR']['ASRVAD']['asr_words_topic'], 
+                                hr_msgs.msg.ChatMessage, 
+                                self.__asrWordsCallback, 
+                                queue_size=self.__config_data['Custom']['Ros']['queue_size'])
+        self.__asr_interim_sub = rospy.Subscriber(
+                                self.__config_data['HR']['ASRVAD']['asr_interim_speech_topic'], 
+                                hr_msgs.msg.ChatMessage, 
+                                self.__asrInterimCallback, 
+                                queue_size=self.__config_data['Custom']['Ros']['queue_size'])
+        self.__asr_fake_sentence_pub = rospy.Publisher(
+                                self.__config_data['HR']['ASRVAD']['asr_fake_sentence_topic'], 
+                                hr_msgs.msg.ChatMessage, 
+                                queue_size=self.__config_data['Custom']['Ros']['queue_size'])
+
 
         #Camera configs
-        self.__cam_ang_sub = rospy.Subscriber(self.__config_data['Ros']['camera_angle_topic'], std_msgs.msg.Float32, self.__cameraAngCallback, queue_size=self.__config_data['Ros']['queue_size'])
+        self.__cam_ang_sub = rospy.Subscriber(
+                                self.__config_data['Custom']['Sensors']['topic_set_cam_angle'], 
+                                std_msgs.msg.Float32, 
+                                self.__cameraAngCallback, 
+                                queue_size=self.__config_data['Custom']['Ros']['queue_size'])
         self.__cam_cfg_client = dynamic_reconfigure.client.Client(
-            self.__config_data['Ros']['camera_cfg_server'],
-            timeout= self.__config_data['Ros']['dynam_config_timeout'])
-        self.setCameraAngle(self.__config_data['Vision']['default_grace_chest_cam_angle'])
+            self.__config_data['HR']['Cam']['camera_cfg_server'],
+            timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
+        self.setCameraAngle(self.__config_data['Sensors']['Vision']['default_grace_chest_cam_angle'])
+
 
         #ASR Configs
-        self.__fake_sentence_rate = self.__config_data['ASR']['asr_fake_sentence_check_rate']
-        self.__fake_sentence_window = self.__config_data['ASR']['asr_fake_sentence_window']
-        self.__prime_lang = self.__config_data['ASR']['primary_language_code']
-        self.__second_lang = self.__config_data['ASR']['secondary_language_code']
-        self.__asr_model = self.__config_data['ASR']['asr_model']
-        self.__continuous_asr = self.__config_data['ASR']['asr_continuous']
+        self.__fake_sentence_rate = self.__config_data['Sensors']['ASR']['asr_fake_sentence_check_rate']
+        self.__fake_sentence_window = self.__config_data['Sensors']['ASR']['asr_fake_sentence_window']
+        self.__prime_lang = self.__config_data['Sensors']['ASR']['primary_language_code']
+        self.__second_lang = self.__config_data['Sensors']['ASR']['secondary_language_code']
+        self.__asr_model = self.__config_data['Sensors']['ASR']['asr_model']
+        self.__continuous_asr = self.__config_data['Sensors']['ASR']['asr_continuous']
+        self.__asr_reconfig_client = dynamic_reconfigure.client.Client(
+                        self.__config_data['HR']['ASRVAD']['asr_reconfig'],
+                        timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
+                         
+        #VAD configs
         self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
-                            self.__config_data['Ros']['vad_config'], 
-                            timeout= self.__config_data['Ros']['dynam_config_timeout'])
+                            self.__config_data['HR']['ASRVAD']['vad_config'], 
+                            timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
 
 
         #Initialize asr
         self.__asrInit()
-        self.__enableVAD()
+        self.__vadInit()
 
 
 
@@ -176,8 +187,13 @@ class SensorInterface:
                     self.__start_faking = False
                     self.__latest_interim = None
 
-    def __enableVAD(self):
-        self.__vad_dynamic_config_client.update_configuration({"enabled":True, "continuous": True})
+    def __vadInit(self):
+        self.__vad_dynamic_config_client.update_configuration(
+                                            {
+                                                "enabled":self.__config_data['Sensors']['VAD']['enabled'], 
+                                                "continuous": True
+                                            }
+                                        )
 
 
     #Interface
@@ -198,7 +214,13 @@ class SensorInterface:
 
 
 if __name__ == '__main__':
-    sensor_interface = SensorInterface()
+    file_path = os.path.dirname(os.path.realpath(getsourcefile(lambda:0)))
+    sys.path.append(os.path.join(file_path, '..'))
+    from CommonConfigs.grace_cfg_loader import *
+    grace_config = loadGraceConfigs()
+
+
+    sensor_interface = SensorInterface(grace_config)
     sensor_interface.mainLoop()
 
 
