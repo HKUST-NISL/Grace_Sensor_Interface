@@ -10,6 +10,7 @@ Ros:
   asr_interim_speech_topic: "/hr/perception/hear/interim_speech"
   asr_fake_sentence_topic: "/hr/perception/hear/fake_sentence"
   asr_reconfig: "/hr/perception/speech_recognizer"
+  topic_emotion_attention_state_estimation: "/grace_proj/emotion_attention_target_person_output_topic"
 
   vad_config: "/hr/perception/whisper_asr"
 
