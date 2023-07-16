@@ -131,7 +131,14 @@ class SensorInterface:
         params = { 'enable': False} 
         self.__asr_reconfig_client.update_configuration(params)
         #Then restart
-        params = { 'enable': True, 'language': self.__prime_lang, 'alternative_language_codes': self.__second_lang, 'model': self.__asr_model, 'continuous': self.__continuous_asr} 
+        params = { 
+            'enable': True, 
+            'language': self.__prime_lang, 
+            'alternative_language_codes': self.__second_lang, 
+            'model': self.__asr_model, 
+            'continuous': self.__continuous_asr,
+            'asr_activity_mon': self.__config_data['Sensors']['ASR']['asr_activity_monitor']
+            } 
         self.__asr_reconfig_client.update_configuration(params)
         #Start the fake sentence generator
         self.__fake_sentence_thread = threading.Thread(target = self.__fakeSentenceThread, daemon=False)
