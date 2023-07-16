@@ -184,7 +184,7 @@ class SensorInterface:
         self.__vad_dynamic_config_client.update_configuration(
                                             {
                                                 "enabled":self.__config_data['Sensors']['VAD']['enabled'], 
-                                                "continuous": True
+                                                "continuous": self.__config_data['Sensors']['VAD']['continuous']
                                             }
                                         )
 
