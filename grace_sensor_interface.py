@@ -50,14 +50,17 @@ class SensorInterface:
     def __init__(self, config_data):
         #miscellaneous
         signal(SIGINT, handle_sigint)
+
+        #Config
+        self.__config_data = config_data
+
         #Sensor interface uses its own logger at its own dir
         self.__logger = setupLogger(
                     logging.DEBUG, 
                     logging.DEBUG, 
                     self.__class__.__name__,
-                    os.path.join(file_path,"./logs/log_") + datetime.now().strftime("%a_%d_%b_%Y_%I_%M_%S_%p"))
+                    os.path.join(file_path,"./logs/log_") + datetime.now().strftime(self.__config_data['Custom']['Logging']['time_format']))
 
-        self.__config_data = config_data
         self.__nh = rospy.init_node(self.__config_data['Sensors']['Ros']['node_name'])
 
         #Ros io
