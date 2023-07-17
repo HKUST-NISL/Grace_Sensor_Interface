@@ -103,15 +103,15 @@ class SensorInterface:
                         self.__config_data['HR']['ASRVAD']['asr_reconfig'],
                         timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
                          
-        #VAD configs
-        self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
-                            self.__config_data['HR']['ASRVAD']['vad_config'], 
-                            timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
+        # #(Legacy) HRVAD configs
+        # self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
+        #                     self.__config_data['HR']['ASRVAD']['vad_config'], 
+        #                     timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
 
 
         #Initialize asr
         self.__asrInit()
-        self.__vadInit()
+        # self.__hrVadInit()
 
 
 
@@ -180,16 +180,17 @@ class SensorInterface:
                     self.__start_faking = False
                     self.__latest_interim = None
 
-    def __vadInit(self):
-        self.__vad_dynamic_config_client.update_configuration(
-                                            {
-                                                "enabled":self.__config_data['Sensors']['VAD']['enabled'], 
-                                                "continuous": self.__config_data['Sensors']['VAD']['continuous'],
-                                                "language": self.__config_data['Sensors']['VAD']['vad_lang'],
-                                                "vad_confidence": self.__config_data['Sensors']['VAD']['vad_confidence'],
-                                                "vad_sensitivity": self.__config_data['Sensors']['VAD']['vad_sensitivity']
-                                            }
-                                        )
+    # # (Legacy)
+    # def __hrVadInit(self):
+    #     self.__vad_dynamic_config_client.update_configuration(
+    #                                         {
+    #                                             "enabled":self.__config_data['Sensors']['HRVAD']['enabled'], 
+    #                                             "continuous": self.__config_data['Sensors']['HRVAD']['continuous'],
+    #                                             "language": self.__config_data['Sensors']['HRVAD']['vad_lang'],
+    #                                             "vad_confidence": self.__config_data['Sensors']['HRVAD']['vad_confidence'],
+    #                                             "vad_sensitivity": self.__config_data['Sensors']['HRVAD']['vad_sensitivity']
+    #                                         }
+    #                                     )
 
 
     #Interface
