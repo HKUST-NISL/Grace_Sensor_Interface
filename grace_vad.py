@@ -31,6 +31,19 @@ sys.path.append(os.path.join(file_path, '..'))
 from CommonConfigs.grace_cfg_loader import *
 from CommonConfigs.logging import setupLogger
 
+#Config and logging
+config_data = loadGraceConfigs()
+
+logger = setupLogger(
+        logging.DEBUG, 
+        logging.INFO, 
+        __name__,
+        os.path.join(file_path,"./logs/log_") 
+        + config_data['Sensors']['SileroVAD']['node_name']
+        + datetime.now().strftime(config_data['Custom']['Logging']['time_format']))
+
+
+
 
 def handle_sigint(signalnum, frame):
     # terminate
@@ -46,6 +59,8 @@ def Int2Float(sound):
         _sound *= 1/abs_max
     audio_float32 = torch.from_numpy(_sound.squeeze())
     return audio_float32
+
+
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -113,7 +128,7 @@ class VADAudio(Audio):
         else:
             raise Exception("Resampling required")
 
-    def vad_collector(self, padding_ms=300, ratio=0.75, frames=None):
+    def vad_collector(self, padding_ms=1000, ratio=0.75, frames=None):
         """Generator that yields series of consecutive audio frames comprising each utterence, separated by yielding a single None.
             Determines voice activity by ratio of frames in padding_ms. Uses a buffer to include padding_ms prior to being triggered.
             Example: (frame, ..., frame, None, frame, ..., frame, None, ...)
@@ -124,43 +139,49 @@ class VADAudio(Audio):
         ring_buffer = collections.deque(maxlen=num_padding_frames)
         triggered = False
 
+        yield_dur = 300
+        yield_cnt = yield_dur // self.frame_duration_ms
+        it_cnt = 0
+
+
         for frame in frames:
             if len(frame) < 640:
                 return
 
             is_speech = self.vad.is_speech(frame, self.sample_rate)
 
-            if not triggered:
-                ring_buffer.append((frame, is_speech))
-                num_voiced = len([f for f, speech in ring_buffer if speech])
-                if num_voiced > ratio * ring_buffer.maxlen:
-                    triggered = True
-                    for f, s in ring_buffer:
-                        yield f
-                    ring_buffer.clear()
+            
+            #Force return
+            ring_buffer.append((frame, is_speech))
+           
+            it_cnt = it_cnt + 1
+            if it_cnt == yield_cnt:
+                for f, s in ring_buffer:
+                    yield f
+                it_cnt = 0
+                logger.debug('Yield a segment.')
+                yield None
 
-            else:
-                yield frame
-                ring_buffer.append((frame, is_speech))
-                num_unvoiced = len([f for f, speech in ring_buffer if not speech])
-                if num_unvoiced > ratio * ring_buffer.maxlen:
-                    triggered = False
-                    yield None
-                    ring_buffer.clear()
+            # if not triggered:
+            #     ring_buffer.append((frame, is_speech))
+            #     num_voiced = len([f for f, speech in ring_buffer if speech])
+            #     if num_voiced > ratio * ring_buffer.maxlen:
+            #         triggered = True
+            #         for f, s in ring_buffer:
+            #             yield f
+            #         ring_buffer.clear()
+
+            # else:
+            #     yield frame
+            #     ring_buffer.append((frame, is_speech))
+            #     num_unvoiced = len([f for f, speech in ring_buffer if not speech])
+            #     if num_unvoiced > ratio * ring_buffer.maxlen:
+            #         triggered = False
+            #         yield None
+            #         ring_buffer.clear()
 
 
 def main(ARGS):
-    #Config and logging
-    config_data = loadGraceConfigs()
-
-    logger = setupLogger(
-            logging.DEBUG, 
-            logging.DEBUG, 
-            __name__,
-            os.path.join(file_path,"./logs/log_") 
-            + config_data['Sensors']['SileroVAD']['node_name']
-            + datetime.now().strftime(config_data['Custom']['Logging']['time_format']))
-
 
     #Ros routine
     nh = rospy.init_node(config_data['Sensors']['SileroVAD']['node_name'])
@@ -199,7 +220,7 @@ def main(ARGS):
             wav_data.extend(frame)
         else:
             if spinner: spinner.stop()
-            logger.info("webRTC has detected a possible speech")
+            logger.debug("webRTC has detected a possible speech")
 
             newsound= np.frombuffer(wav_data,np.int16)
             audio_float32=Int2Float(newsound)
@@ -216,13 +237,13 @@ def main(ARGS):
                                     # min_speech_samples=ARGS.min_speech_samples,
                                     # min_silence_samples=ARGS.min_silence_samples
 
-                                    0.8,  # speech prob threshold
-                                    # 16000,  # sample rate
-                                    # 300,  # min speech duration in ms
-                                    # 20,  # max speech duration in seconds
-                                    # 600,  # min silence duration
-                                    # 512,  # window size
-                                    # 200  # speech pad ms
+                                    threshold = 0.95,
+                                    sampling_rate  = 16000,
+                                    min_speech_duration_ms = 400,
+                                    max_speech_duration_s = float('inf'),
+                                    min_silence_duration_ms = 100,
+                                    window_size_samples = 512,
+                                    speech_pad_ms = 30,
                                     )
 
             if(len(time_stamps)>0):
@@ -230,7 +251,7 @@ def main(ARGS):
                 logger.info("silero VAD has detected a possible speech")
             else:
                 vad_pub.publish(config_data['Sensors']['SileroVAD']['noise_string'])
-                logger.info("silero VAD has detected a noise")
+                logger.debug("silero VAD has detected a noise")
             print()
             wav_data = bytearray()
 
