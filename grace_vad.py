@@ -5,6 +5,47 @@ import webrtcvad
 from halo import Halo
 import torch
 import torchaudio
+import logging
+from datetime import datetime
+import os
+from inspect import getsourcefile
+from os.path import abspath
+import sys
+import time
+from signal import signal
+from signal import SIGINT
+
+#ros
+import rospy
+import dynamic_reconfigure.client
+import sensor_msgs.msg
+import std_msgs.msg
+import hr_msgs.msg
+import hr_msgs.msg
+import std_msgs
+
+
+#Misc
+file_path = os.path.dirname(os.path.realpath(getsourcefile(lambda:0)))
+sys.path.append(os.path.join(file_path, '..'))
+from CommonConfigs.grace_cfg_loader import *
+from CommonConfigs.logging import setupLogger
+
+
+def handle_sigint(signalnum, frame):
+    # terminate
+    print('Main interrupted! Exiting.')
+    sys.exit()
+
+
+def Int2Float(sound):
+    _sound = np.copy(sound)  #
+    abs_max = np.abs(_sound).max()
+    _sound = _sound.astype('float32')
+    if abs_max > 0:
+        _sound *= 1/abs_max
+    audio_float32 = torch.from_numpy(_sound.squeeze())
+    return audio_float32
 
 class Audio(object):
     """Streams raw audio from microphone. Data is received in a separate thread, and stored in a buffer, to be read from."""
@@ -57,7 +98,6 @@ class Audio(object):
 
     frame_duration_ms = property(lambda self: 1000 * self.block_size // self.sample_rate)
 
-
 class VADAudio(Audio):
     """Filter & segment audio with voice activity detection."""
 
@@ -108,7 +148,29 @@ class VADAudio(Audio):
                     yield None
                     ring_buffer.clear()
 
+
 def main(ARGS):
+    #Config and logging
+    config_data = loadGraceConfigs()
+
+    logger = setupLogger(
+            logging.DEBUG, 
+            logging.DEBUG, 
+            __name__,
+            os.path.join(file_path,"./logs/log_") 
+            + config_data['Sensors']['SileroVAD']['node_name']
+            + datetime.now().strftime(config_data['Custom']['Logging']['time_format']))
+
+
+    #Ros routine
+    nh = rospy.init_node(config_data['Sensors']['SileroVAD']['node_name'])
+    vad_pub = rospy.Publisher(
+        config_data['Custom']['Sensors']['topic_silero_vad_name'],
+        std_msgs.msg.String,
+        queue_size= config_data['Custom']['Ros']['queue_size']
+    )
+
+
     # Start audio with VAD
     vad_audio = VADAudio(aggressiveness=ARGS.webRTC_aggressiveness,
                          device=ARGS.device,
@@ -137,7 +199,7 @@ def main(ARGS):
             wav_data.extend(frame)
         else:
             if spinner: spinner.stop()
-            print("webRTC has detected a possible speech")
+            logger.info("webRTC has detected a possible speech")
 
             newsound= np.frombuffer(wav_data,np.int16)
             audio_float32=Int2Float(newsound)
@@ -164,23 +226,21 @@ def main(ARGS):
                                     )
 
             if(len(time_stamps)>0):
-                print("silero VAD has detected a possible speech")
+                vad_pub.publish(config_data['Sensors']['SileroVAD']['speech_string'])
+                logger.info("silero VAD has detected a possible speech")
             else:
-                print("silero VAD has detected a noise")
+                vad_pub.publish(config_data['Sensors']['SileroVAD']['noise_string'])
+                logger.info("silero VAD has detected a noise")
             print()
             wav_data = bytearray()
 
-
-def Int2Float(sound):
-    _sound = np.copy(sound)  #
-    abs_max = np.abs(_sound).max()
-    _sound = _sound.astype('float32')
-    if abs_max > 0:
-        _sound *= 1/abs_max
-    audio_float32 = torch.from_numpy(_sound.squeeze())
-    return audio_float32
-
 if __name__ == '__main__':
+
+    signal(SIGINT, handle_sigint)
+
+    '''
+        Default args, to be replaced with config values
+    '''
     DEFAULT_SAMPLE_RATE = 16000
 
     import argparse
@@ -216,4 +276,7 @@ if __name__ == '__main__':
                         help=" minimum silence duration in samples between to separate speech chunks")
     ARGS = parser.parse_args()
     ARGS.rate=DEFAULT_SAMPLE_RATE
+
+
+    #Initiate vad main loop
     main(ARGS)
