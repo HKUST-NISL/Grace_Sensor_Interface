@@ -111,7 +111,7 @@ class SensorInterface:
 
         #Initialize asr
         self.__asrInit()
-        # self.__hrVadInit()
+        self.__hrVadInit()
 
 
 
@@ -180,17 +180,17 @@ class SensorInterface:
                     self.__start_faking = False
                     self.__latest_interim = None
 
-    # # (Legacy)
-    # def __hrVadInit(self):
-    #     self.__vad_dynamic_config_client.update_configuration(
-    #                                         {
-    #                                             "enabled":self.__config_data['Sensors']['HRVAD']['enabled'], 
-    #                                             "continuous": self.__config_data['Sensors']['HRVAD']['continuous'],
-    #                                             "language": self.__config_data['Sensors']['HRVAD']['vad_lang'],
-    #                                             "vad_confidence": self.__config_data['Sensors']['HRVAD']['vad_confidence'],
-    #                                             "vad_sensitivity": self.__config_data['Sensors']['HRVAD']['vad_sensitivity']
-    #                                         }
-    #                                     )
+    # (Legacy)
+    def __hrVadInit(self):
+        self.__vad_dynamic_config_client.update_configuration(
+                                            {
+                                                "enabled":self.__config_data['Sensors']['HRVAD']['enabled'], 
+                                                "continuous": self.__config_data['Sensors']['HRVAD']['continuous'],
+                                                "language": self.__config_data['Sensors']['HRVAD']['vad_lang'],
+                                                "vad_confidence": self.__config_data['Sensors']['HRVAD']['vad_confidence'],
+                                                "vad_sensitivity": self.__config_data['Sensors']['HRVAD']['vad_sensitivity']
+                                            }
+                                        )
 
 
     #Interface
