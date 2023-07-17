@@ -118,7 +118,7 @@ def main(ARGS):
     frames = vad_audio.vad_collector()
 
     # load silero VAD
-    torchaudio.set_audio_backend("soundfile")
+    torchaudio.set_audio_backend("sox_io")
     model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                                     model=ARGS.silaro_model_name,
                                     force_reload= ARGS.reload)
