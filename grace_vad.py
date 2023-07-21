@@ -164,6 +164,7 @@ vad_conf_thresh = config_data['Sensors']['SileroVAD']['conf_threshold']
 def vadConfThreshCallback(msg):
     global vad_conf_thresh 
     vad_conf_thresh = msg.data
+    print('VAD thresh updated to %f.' % (vad_conf_thresh) )
 
 
 def main():
