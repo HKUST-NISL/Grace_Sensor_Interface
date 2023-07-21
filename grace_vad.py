@@ -160,6 +160,12 @@ class VADAudio(Audio):
                 yield None
 
 
+vad_conf_thresh = config_data['Sensors']['SileroVAD']['conf_threshold']
+def vadConfThreshCallback(msg):
+    global vad_conf_thresh 
+    vad_conf_thresh = msg.data
+
+
 def main():
 
     #Ros routine
@@ -167,6 +173,13 @@ def main():
     vad_pub = rospy.Publisher(
         config_data['Custom']['Sensors']['topic_silero_vad_name'],
         std_msgs.msg.String,
+        queue_size= config_data['Custom']['Ros']['queue_size']
+    )
+
+    vad_conf_sub = rospy.Subscriber(
+        config_data['Custom']['Sensors']['topic_silero_vad_conf_thresh_name'],
+        std_msgs.msg.Float32,
+        vadConfThreshCallback,
         queue_size= config_data['Custom']['Ros']['queue_size']
     )
 
@@ -207,7 +220,7 @@ def main():
                                     audio_float32, 
                                     model,
                                     #VAD configs
-                                    threshold = config_data['Sensors']['SileroVAD']['conf_threshold'],
+                                    threshold = vad_conf_thresh,
                                     sampling_rate  = config_data['Sensors']['SileroVAD']['sampling_rate'],
                                     min_speech_duration_ms = config_data['Sensors']['SileroVAD']['min_speech_dur_ms'],
                                     max_speech_duration_s = config_data['Sensors']['SileroVAD']['max_speech_dur_s'],
