@@ -180,7 +180,7 @@ def main():
         config_data['Custom']['Sensors']['topic_silero_vad_conf_thresh_name'],
         std_msgs.msg.Float32,
         vadConfThreshCallback,
-        queue_size= config_data['Custom']['Ros']['queue_size']
+        queue_size= 1
     )
 
 
