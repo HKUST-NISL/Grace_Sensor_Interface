@@ -103,10 +103,10 @@ class SensorInterface:
                         self.__config_data['HR']['ASRVAD']['asr_reconfig'],
                         timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
                          
-        # #(Legacy) HRVAD configs
-        # self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
-        #                     self.__config_data['HR']['ASRVAD']['vad_config'], 
-        #                     timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
+        #(Legacy) HRVAD configs
+        self.__vad_dynamic_config_client = dynamic_reconfigure.client.Client(
+                            self.__config_data['HR']['ASRVAD']['vad_config'], 
+                            timeout= self.__config_data['Custom']['Ros']['dynam_config_timeout'])
 
 
         #Initialize asr
