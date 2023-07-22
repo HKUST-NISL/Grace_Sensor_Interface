@@ -142,20 +142,19 @@ class VADAudio(Audio):
         ring_buffer = collections.deque(maxlen=num_frames_window)
         #Yield frame at a rough frequency
         yield_frame_max_cnt = ( 1000 / yield_freq_hz ) // self.frame_duration_ms
-        yield_frame_cnt = 0
+        new_frame_cnt = 0
 
         for frame in frames:
             if len(frame) < 640:
                 return
-            
             ring_buffer.append(frame)
-            yield_frame_cnt = yield_frame_cnt + 1
-            if yield_frame_cnt == yield_frame_max_cnt:
+            new_frame_cnt = new_frame_cnt + 1
+            if new_frame_cnt == yield_frame_max_cnt:
                 #Return all frames
                 for f in ring_buffer:
                     yield f
                 #Reset counter
-                yield_frame_cnt = 0
+                new_frame_cnt = 0
                 #A none frame is used to invoke the vad processing
                 yield None
 
