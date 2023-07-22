@@ -24,6 +24,8 @@ import hr_msgs.msg
 import hr_msgs.cfg
 import hr_msgs.srv
 import std_msgs
+import grace_vad
+
 
 #Misc
 file_path = os.path.dirname(os.path.realpath(getsourcefile(lambda:0)))
@@ -113,6 +115,9 @@ class SensorInterface:
         self.__asrInit()
         self.__hrVadInit()
 
+
+        #Silero VAD
+        self.__sileroVAD = grace_vad.GraceVAD(self.__config_data,self.__logger)
 
 
 
