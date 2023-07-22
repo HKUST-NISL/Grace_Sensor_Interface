@@ -235,7 +235,7 @@ def main():
                 logger.info("Silero VAD: speech")
             else:
                 vad_pub.publish(config_data['Sensors']['SileroVAD']['non_speech_string'])
-                logger.debug("Silero VAD: non-speech")
+                logger.info("Silero VAD: non-speech")
 
             #Clear
             wav_data = bytearray()
