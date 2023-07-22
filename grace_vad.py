@@ -151,6 +151,8 @@ class VADAudio(Audio):
                 return
             self.ring_buffer.append(frame)
             
+            yield None
+
             '''
             new_frame_cnt = new_frame_cnt + 1
             if new_frame_cnt == yield_frame_max_cnt:
@@ -214,7 +216,7 @@ def main():
     wav_data = bytearray()
     logger.info("Begin listening (ctrl-C to exit)...")
 
-    while True:
+    for frame in frames:
         #Read audio frames
         for f in vad_audio.ring_buffer:
             wav_data.extend(f)
@@ -250,6 +252,9 @@ def main():
 
         #Sleep
         rate.sleep()
+
+
+
 
 '''
     for frame in frames:
