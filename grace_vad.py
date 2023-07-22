@@ -120,6 +120,7 @@ class VADAudio(Audio):
 
     def __init__(self, aggressiveness=3, device=None, input_rate=None):
         super().__init__(device=device, input_rate=input_rate)
+        self.ring_buffer = None
         self.vad = webrtcvad.Vad(aggressiveness)
 
     def frame_generator(self):
@@ -139,15 +140,18 @@ class VADAudio(Audio):
         if frames is None: frames = self.frame_generator()
         #Window size and window initialization
         num_frames_window = window_size_ms // self.frame_duration_ms
-        ring_buffer = collections.deque(maxlen=num_frames_window)
+        self.ring_buffer = collections.deque(maxlen=num_frames_window)
+
         #Yield frame at a rough frequency
-        yield_frame_max_cnt = ( 1000 / yield_freq_hz ) // self.frame_duration_ms
-        new_frame_cnt = 0
+        #yield_frame_max_cnt = ( 1000 / yield_freq_hz ) // self.frame_duration_ms
+        #new_frame_cnt = 0
 
         for frame in frames:
             if len(frame) < 640:
                 return
-            ring_buffer.append(frame)
+            self.ring_buffer.append(frame)
+            
+            '''
             new_frame_cnt = new_frame_cnt + 1
             if new_frame_cnt == yield_frame_max_cnt:
                 #Return all frames
@@ -157,7 +161,7 @@ class VADAudio(Audio):
                 new_frame_cnt = 0
                 #A none frame is used to invoke the vad processing
                 yield None
-
+            '''
 
 vad_conf_thresh = config_data['Sensors']['SileroVAD']['conf_threshold']
 def vadConfThreshCallback(msg):
@@ -166,9 +170,10 @@ def vadConfThreshCallback(msg):
     logger.info('VAD thresh updated to %f.' % (vad_conf_thresh) )
 
 
+
 def main():
 
-    #Ros routine
+    # Ros routine
     nh = rospy.init_node(config_data['Sensors']['SileroVAD']['node_name'])
     vad_pub = rospy.Publisher(
         config_data['Custom']['Sensors']['topic_silero_vad_name'],
@@ -205,9 +210,48 @@ def main():
 
 
     # Start streaming and processing
+    rate = rospy.Rate(hz=config_data['Sensors']['SileroVAD']['yield_freq_hz'])
+    wav_data = bytearray()
     logger.info("Begin listening (ctrl-C to exit)...")
 
-    wav_data = bytearray()
+    while True:
+        #Read audio frames
+        for f in vad_audio.ring_buffer:
+            wav_data.extend(f)
+
+        #Pre-process chunk
+        newsound= np.frombuffer(wav_data,np.int16)
+        audio_float32=Int2Float(newsound)
+
+        #Run vad over the chunk
+        time_stamps =get_speech_ts(
+                                audio_float32, 
+                                model,
+                                #VAD configs
+                                threshold = vad_conf_thresh,
+                                sampling_rate  = config_data['Sensors']['SileroVAD']['sampling_rate'],
+                                min_speech_duration_ms = config_data['Sensors']['SileroVAD']['min_speech_dur_ms'],
+                                max_speech_duration_s = config_data['Sensors']['SileroVAD']['max_speech_dur_s'],
+                                min_silence_duration_ms = config_data['Sensors']['SileroVAD']['min_silence_dur_ms'],
+                                window_size_samples = config_data['Sensors']['SileroVAD']['internal_window_size_samples'],
+                                speech_pad_ms = config_data['Sensors']['SileroVAD']['speech_padding_ms'],
+                                )
+        
+        #Check if there is a speech in this chunk
+        if(len(time_stamps)>0):
+            vad_pub.publish(config_data['Sensors']['SileroVAD']['speech_string'])
+            logger.info("Silero VAD: speech")
+        else:
+            vad_pub.publish(config_data['Sensors']['SileroVAD']['non_speech_string'])
+            logger.info("Silero VAD: non-speech")
+
+        #Clear
+        wav_data = bytearray()
+
+        #Sleep
+        rate.sleep()
+
+'''
     for frame in frames:
         if frame is not None:
             wav_data.extend(frame)
@@ -238,7 +282,7 @@ def main():
 
             #Clear
             wav_data = bytearray()
-
+'''
 
 
 
