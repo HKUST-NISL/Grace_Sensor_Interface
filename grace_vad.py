@@ -15,6 +15,10 @@ import time
 from signal import signal
 from signal import SIGINT
 import threading
+from pyannote.audio import Pipeline
+import scipy.io.wavfile as wf
+import wave
+import io
 
 #ros
 import rospy
@@ -61,37 +65,43 @@ class GraceVAD:
 
 
 
-        #VAD model
-        torchaudio.set_audio_backend(self.__config_data['Sensors']['SileroVAD']['audio_backend'])
-        self.__model, self.__utils = torch.hub.load(
-                            repo_or_dir = self.__config_data['Sensors']['SileroVAD']['model'],
-                            model=self.__config_data['Sensors']['SileroVAD']['model_name'],
-                            force_reload = self.__config_data['Sensors']['SileroVAD']['force_reload'])
-        (self.__get_speech_ts,_,_,_,_) = self.__utils
+        #Silero VAD model
+        if(self.__config_data['Sensors']['SileroVAD']['enabled']):
+            torchaudio.set_audio_backend(self.__config_data['Sensors']['SileroVAD']['audio_backend'])
+            self.__model, self.__utils = torch.hub.load(
+                                repo_or_dir = self.__config_data['Sensors']['SileroVAD']['model'],
+                                model=self.__config_data['Sensors']['SileroVAD']['model_name'],
+                                force_reload = self.__config_data['Sensors']['SileroVAD']['force_reload'])
+            (self.__get_speech_ts,_,_,_,_) = self.__utils
+            #Initial conf threshold
+            self.__vad_conf_thresh = self.__config_data['Sensors']['SileroVAD']['conf_threshold']
+
+        #Pyannote vad
+        if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
+            self.__pyaanote_pipeline = Pipeline.from_pretrained("pyannote/voice-activity-detection",
+                            use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
+
 
         #Ros IO
         self.__vad_pub = rospy.Publisher(
-            self.__config_data['Custom']['Sensors']['topic_silero_vad_name'],
+            self.__config_data['Custom']['Sensors']['topic_vad_results'],
             std_msgs.msg.String,
             queue_size= self.__config_data['Custom']['Ros']['queue_size']
         )
         self.__raw_audio_sub = rospy.Subscriber(
-            self.__config_data['Custom']['Sensors']['topic_silero_vad_raw_audio'],
+            self.__config_data['Custom']['Sensors']['topic_vad_raw_audio'],
             audio_common_msgs.msg.AudioData,
             self.rawAudioCallback,
             queue_size= 1
         )
         self.__vad_conf_sub = rospy.Subscriber(
-            self.__config_data['Custom']['Sensors']['topic_silero_vad_conf_thresh_name'],
+            self.__config_data['Custom']['Sensors']['topic_vad_conf_thresh'],
             std_msgs.msg.Float32,
             self.vadConfThreshCallback,
             queue_size= 1
         )
 
 
-
-        #Initial conf threshold
-        self.__vad_conf_thresh = self.__config_data['Sensors']['SileroVAD']['conf_threshold']
 
 
     def vadConfThreshCallback(self,msg):
@@ -104,29 +114,46 @@ class GraceVAD:
 
         #Pre-process chunk
         newsound= np.frombuffer(msg.data,np.int16)
-        audio_float32=Int2Float(newsound)
 
-        #Run vad over the chunk
-        time_stamps = self.__get_speech_ts(
-                                audio_float32, 
-                                self.__model,
-                                #VAD configs
-                                threshold = self.__vad_conf_thresh,
-                                sampling_rate  = self.__config_data['Sensors']['SileroVAD']['sampling_rate'],
-                                min_speech_duration_ms = self.__config_data['Sensors']['SileroVAD']['min_speech_dur_ms'],
-                                max_speech_duration_s = self.__config_data['Sensors']['SileroVAD']['max_speech_dur_s'],
-                                min_silence_duration_ms = self.__config_data['Sensors']['SileroVAD']['min_silence_dur_ms'],
-                                window_size_samples = self.__config_data['Sensors']['SileroVAD']['internal_window_size_samples'],
-                                speech_pad_ms = self.__config_data['Sensors']['SileroVAD']['speech_padding_ms'],
-                                )
+        '''
+        Run vad over the chunk
+        '''
+        vad_flag = False
+        if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
+            # # Pyannote vad
+            f_handle = open(self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'],'w')
+            wf.write(
+                    f_handle, 
+                    self.__config_data['Sensors']['VAD']['sampling_rate'], 
+                    newsound)
+            output = self.__pyaanote_pipeline(f_handle)
+            segments = output.get_timeline().support().segments_list_
+            vad_flag = len(segments)>0
+
+        if(self.__config_data['Sensors']['SileroVAD']['enabled']):
+            # # Silero vad
+            audio_float32=Int2Float(newsound)
+            time_stamps = self.__get_speech_ts(
+                                    audio_float32, 
+                                    self.__model,
+                                    #VAD configs
+                                    threshold = self.__vad_conf_thresh,
+                                    sampling_rate  = self.__config_data['Sensors']['VAD']['sampling_rate'],
+                                    min_speech_duration_ms = self.__config_data['Sensors']['SileroVAD']['min_speech_dur_ms'],
+                                    max_speech_duration_s = self.__config_data['Sensors']['SileroVAD']['max_speech_dur_s'],
+                                    min_silence_duration_ms = self.__config_data['Sensors']['SileroVAD']['min_silence_dur_ms'],
+                                    window_size_samples = self.__config_data['Sensors']['SileroVAD']['internal_window_size_samples'],
+                                    speech_pad_ms = self.__config_data['Sensors']['SileroVAD']['speech_padding_ms'],
+                                    )
+            vad_flag = len(time_stamps)>0
         
         #Check if there is a speech in this chunk
-        if(len(time_stamps)>0):
-            self.__vad_pub.publish(self.__config_data['Sensors']['SileroVAD']['speech_string'])
-            self.__logger.info("Silero VAD: speech")
+        if(vad_flag):
+            self.__vad_pub.publish(self.__config_data['Sensors']['VAD']['speech_string'])
+            self.__logger.info("VAD: %s" % (self.__config_data['Sensors']['VAD']['speech_string']) )
         else:
-            self.__vad_pub.publish(self.__config_data['Sensors']['SileroVAD']['non_speech_string'])
-            self.__logger.info("Silero VAD: non-speech")
+            self.__vad_pub.publish(self.__config_data['Sensors']['VAD']['non_speech_string'])
+            self.__logger.info("VAD: %s" % (self.__config_data['Sensors']['VAD']['non_speech_string']) )
 
 
 

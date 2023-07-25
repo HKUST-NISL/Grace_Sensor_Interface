@@ -49,7 +49,7 @@ logger = setupLogger(
         logging.INFO, 
         __name__,
         os.path.join(file_path,"./logs/log_") 
-        + config_data['Sensors']['SileroVAD']['streamer_node_name']
+        + config_data['Sensors']['VAD']['streamer_node_name']
         + datetime.now().strftime(config_data['Custom']['Logging']['time_format']))
 
 #Sliding window of audio frame
@@ -130,7 +130,6 @@ class VADAudio(Audio):
     def vadFrameStream(self, frames=None):
         '''
             Maintains a sliding window over the audio stream and 
-            invoke silero vad to process the audio chunk at a certain "rough" frequency
         '''
         if frames is None: frames = self.frame_generator()
 
@@ -143,13 +142,13 @@ class VADAudio(Audio):
 def streamingThread():
 
     raw_audio_pub = rospy.Publisher(
-        config_data['Custom']['Sensors']['topic_silero_vad_raw_audio'],
+        config_data['Custom']['Sensors']['topic_vad_raw_audio'],
         audio_common_msgs.msg.AudioData,
         queue_size= 1
     )
 
 
-    rate = rospy.Rate(config_data['Sensors']['SileroVAD']['yield_freq_hz'])
+    rate = rospy.Rate(config_data['Sensors']['VAD']['yield_freq_hz'])
 
     while True:
         rate.sleep()
@@ -168,21 +167,21 @@ def streamingThread():
 def main():
 
     # Ros routine
-    nh = rospy.init_node(config_data['Sensors']['SileroVAD']['streamer_node_name'])
+    nh = rospy.init_node(config_data['Sensors']['VAD']['streamer_node_name'])
 
 
     # Initialize the audio object
     vad_audio = VADAudio(
                     aggressiveness=config_data['Sensors']['SileroVAD']['webRTC_aggressiveness'],
                     device=None,#Use default device
-                    input_rate=config_data['Sensors']['SileroVAD']['sampling_rate'])
+                    input_rate=config_data['Sensors']['VAD']['sampling_rate'])
     
     #Audio frame stream
     frames = vad_audio.vadFrameStream()
 
     # A sliding window for storing audio frames
     global ring_buffer
-    num_frames_window = config_data['Sensors']['SileroVAD']['window_size_ms'] // vad_audio.frame_duration_ms
+    num_frames_window = config_data['Sensors']['VAD']['window_size_ms'] // vad_audio.frame_duration_ms
     ring_buffer = collections.deque(maxlen=num_frames_window)
 
     # Start streaming 
