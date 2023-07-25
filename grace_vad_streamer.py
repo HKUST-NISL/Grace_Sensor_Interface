@@ -139,8 +139,9 @@ class VADAudio(Audio):
             yield frame
 
 
+buffer_lock = threading.Lock()
 def streamingThread():
-
+    global buffer_lock
     raw_audio_pub = rospy.Publisher(
         config_data['Custom']['Sensors']['topic_vad_raw_audio'],
         audio_common_msgs.msg.AudioData,
@@ -154,8 +155,10 @@ def streamingThread():
         rate.sleep()
 
         wav_data = bytearray()
+        buffer_lock.acquire()
         for f in ring_buffer:
             wav_data.extend(f)
+        buffer_lock.release()
         msg = audio_common_msgs.msg.AudioData()
         msg.data = list(wav_data)
         raw_audio_pub.publish(msg)
@@ -190,8 +193,9 @@ def main():
     streaming_thread.start()
     
     for frame in frames:
+        buffer_lock.acquire()
         ring_buffer.append(frame)
-
+        buffer_lock.release()
 
 if __name__ == '__main__':
     signal(SIGINT, handle_sigint)

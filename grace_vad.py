@@ -74,12 +74,25 @@ class GraceVAD:
                                 force_reload = self.__config_data['Sensors']['SileroVAD']['force_reload'])
             (self.__get_speech_ts,_,_,_,_) = self.__utils
             #Initial conf threshold
-            self.__vad_conf_thresh = self.__config_data['Sensors']['SileroVAD']['conf_threshold']
+            self.__silero_vad_conf_thresh = self.__config_data['Sensors']['VAD']['conf_threshold']
+
+            self.__silero_vad_conf_sub = rospy.Subscriber(
+                self.__config_data['Custom']['Sensors']['topic_vad_conf_thresh'],
+                std_msgs.msg.Float32,
+                self.vadConfThreshCallback,
+                queue_size= 1
+            )
+
+
 
         #Pyannote vad
         if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
             self.__pyaanote_pipeline = Pipeline.from_pretrained("pyannote/voice-activity-detection",
                             use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
+            self.__pyaanote_pipeline.__setattr__('onset',self.__config_data['Sensors']['VAD']['conf_threshold'])
+            self.__pyaanote_pipeline.__setattr__('offset',self.__config_data['Sensors']['VAD']['conf_threshold'])
+
+
 
 
         #Ros IO
@@ -94,19 +107,14 @@ class GraceVAD:
             self.rawAudioCallback,
             queue_size= 1
         )
-        self.__vad_conf_sub = rospy.Subscriber(
-            self.__config_data['Custom']['Sensors']['topic_vad_conf_thresh'],
-            std_msgs.msg.Float32,
-            self.vadConfThreshCallback,
-            queue_size= 1
-        )
-
 
 
 
     def vadConfThreshCallback(self,msg):
-        self.__vad_conf_thresh = msg.data
-        self.__logger.info('VAD thresh updated to %f.' % (self.__vad_conf_thresh) )
+        if(self.__config_data['Sensors']['SileroVAD']['enabled']):
+            self.__silero_vad_conf_thresh = msg.data
+
+            self.__logger.info('VAD thresh updated to %f.' % (self.__silero_vad_conf_thresh) )
 
 
 
@@ -121,12 +129,11 @@ class GraceVAD:
         vad_flag = False
         if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
             # # Pyannote vad
-            f_handle = open(self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'],'w')
             wf.write(
-                    f_handle, 
+                    self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'], 
                     self.__config_data['Sensors']['VAD']['sampling_rate'], 
                     newsound)
-            output = self.__pyaanote_pipeline(f_handle)
+            output = self.__pyaanote_pipeline(self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'])
             segments = output.get_timeline().support().segments_list_
             vad_flag = len(segments)>0
 
@@ -137,7 +144,7 @@ class GraceVAD:
                                     audio_float32, 
                                     self.__model,
                                     #VAD configs
-                                    threshold = self.__vad_conf_thresh,
+                                    threshold = self.__silero_vad_conf_thresh,
                                     sampling_rate  = self.__config_data['Sensors']['VAD']['sampling_rate'],
                                     min_speech_duration_ms = self.__config_data['Sensors']['SileroVAD']['min_speech_dur_ms'],
                                     max_speech_duration_s = self.__config_data['Sensors']['SileroVAD']['max_speech_dur_s'],
