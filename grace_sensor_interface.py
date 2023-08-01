@@ -59,7 +59,7 @@ class SensorInterface:
         #Sensor interface uses its own logger at its own dir
         self.__logger = setupLogger(
                     logging.DEBUG, 
-                    logging.DEBUG, 
+                    logging.INFO, 
                     self.__class__.__name__,
                     os.path.join(file_path,"./logs/log_") + datetime.now().strftime(self.__config_data['Custom']['Logging']['time_format']))
 

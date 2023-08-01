@@ -16,6 +16,8 @@ from signal import signal
 from signal import SIGINT
 import threading
 from pyannote.audio import Pipeline
+from pyannote.audio.pipelines import VoiceActivityDetection
+from pyannote.audio import Model
 import scipy.io.wavfile as wf
 import wave
 import io
@@ -87,13 +89,35 @@ class GraceVAD:
 
         #Pyannote vad
         if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
-            self.__pyaanote_pipeline = Pipeline.from_pretrained("pyannote/voice-activity-detection",
-                            use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
-            self.__pyaanote_pipeline.__setattr__('onset',self.__config_data['Sensors']['VAD']['conf_threshold'])
-            self.__pyaanote_pipeline.__setattr__('offset',self.__config_data['Sensors']['VAD']['conf_threshold'])
+            if(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 0):
+                self.__pyannote_pipeline = Pipeline.from_pretrained(
+                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad']), 
+                                use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
+            
+            elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
+                #TBD
+                pass
+            
+                # self.__pyannote_model = Model.from_pretrained(
+                #                 os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['model_segmentation']), 
+                #                 use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
+                # self.__pyannote_pipeline = VoiceActivityDetection(segmentation=self.__pyannote_model)
+                # HYPER_PARAMETERS = {
+                #     # onset/offset activation thresholds
+                #     "onset": 0.5, "offset": 0.5,
+                #     # remove speech regions shorter than that many seconds.
+                #     "min_duration_on": 0.0,
+                #     # fill non-speech regions shorter than that many seconds.
+                #     "min_duration_off": 0.0
+                # }
+                # self.__pyannote_pipeline.instantiate(HYPER_PARAMETERS)
+            
+            elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 2):
+                #TBD
+                pass
 
-
-
+            else:
+                pass
 
         #Ros IO
         self.__vad_pub = rospy.Publisher(
@@ -133,9 +157,35 @@ class GraceVAD:
                     self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'], 
                     self.__config_data['Sensors']['VAD']['sampling_rate'], 
                     newsound)
-            output = self.__pyaanote_pipeline(self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'])
-            segments = output.get_timeline().support().segments_list_
-            vad_flag = len(segments)>0
+            output = self.__pyannote_pipeline(self.__config_data['Sensors']['PyannoteVAD']['tmp_file_name'])
+            
+            if(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 0):
+                # This is the routine for vad pipeline
+                segments = output.get_timeline().support()
+                vad_flag = len(segments)>0
+
+            elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
+                # This is the routine for segmentation pipeline
+                
+                #TBD
+                pass
+
+            elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 2):
+                # This is the routine for diarization pipeline
+
+                #TBD
+                pass
+
+                # vad_flag = len(output._labels) > 1
+                # self.__logger.debug('Processing vad results.')
+                # for label in output._labels:
+                #     # speaker speaks between turn.start and turn.end
+                #     self.__logger.debug('Speaker %s.' % (label) )
+            else:
+                pass
+
+
+
 
         if(self.__config_data['Sensors']['SileroVAD']['enabled']):
             # # Silero vad
