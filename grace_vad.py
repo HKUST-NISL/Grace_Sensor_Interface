@@ -91,26 +91,24 @@ class GraceVAD:
         if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
             if(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 0):
                 self.__pyannote_pipeline = Pipeline.from_pretrained(
-                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad']), 
+                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad']),
                                 use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
             
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
-                #TBD
-                pass
-            
                 # self.__pyannote_model = Model.from_pretrained(
-                #                 os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['model_segmentation']), 
+                #                 'pyannote/segmentation', 
                 #                 use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
                 # self.__pyannote_pipeline = VoiceActivityDetection(segmentation=self.__pyannote_model)
                 # HYPER_PARAMETERS = {
                 #     # onset/offset activation thresholds
-                #     "onset": 0.5, "offset": 0.5,
+                #     "onset": 0.85, "offset": 0.5,
                 #     # remove speech regions shorter than that many seconds.
-                #     "min_duration_on": 0.0,
+                #     "min_duration_on": 0,
                 #     # fill non-speech regions shorter than that many seconds.
                 #     "min_duration_off": 0.0
                 # }
                 # self.__pyannote_pipeline.instantiate(HYPER_PARAMETERS)
+                pass
             
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 2):
                 #TBD
@@ -165,9 +163,8 @@ class GraceVAD:
                 vad_flag = len(segments)>0
 
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
-                # This is the routine for segmentation pipeline
-                
-                #TBD
+                # # This is the routine for segmentation pipeline
+                # self.__logger.info(output._labels)         
                 pass
 
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 2):
@@ -181,8 +178,9 @@ class GraceVAD:
                 # for label in output._labels:
                 #     # speaker speaks between turn.start and turn.end
                 #     self.__logger.debug('Speaker %s.' % (label) )
+                
             else:
-                pass
+                self.__logger.error('Unexpected pipeline choice.')
 
 
 
