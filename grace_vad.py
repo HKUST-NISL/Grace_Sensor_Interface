@@ -75,7 +75,8 @@ class GraceVAD:
                                 model=self.__config_data['Sensors']['SileroVAD']['model_name'],
                                 force_reload = self.__config_data['Sensors']['SileroVAD']['force_reload'])
             (self.__get_speech_ts,_,_,_,_) = self.__utils
-            #Initial conf threshold
+
+            #Silero: conf threshold
             self.__silero_vad_conf_thresh = self.__config_data['Sensors']['VAD']['conf_threshold']
 
             self.__silero_vad_conf_sub = rospy.Subscriber(
@@ -90,9 +91,24 @@ class GraceVAD:
         #Pyannote vad
         if(self.__config_data['Sensors']['PyannoteVAD']['enabled']):
             if(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 0):
-                self.__pyannote_pipeline = Pipeline.from_pretrained(
-                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad']),
+                #Pyannote: vad model switch
+                self.__pyannote_vad_model_sub = rospy.Subscriber(
+                    self.__config_data['Custom']['Sensors']['topic_vad_model'],
+                    std_msgs.msg.String,
+                    self.vadModelCallback,
+                    queue_size= 1
+                )
+
+
+
+                self.__pyannote_pipeline_ls = Pipeline.from_pretrained(
+                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad_ls']),
                                 use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])
+                self.__pyannote_pipeline_ms = Pipeline.from_pretrained(
+                                os.path.join(getConfigPath(),self.__config_data['Sensors']['PyannoteVAD']['pipeline_vad_ms']),
+                                use_auth_token=self.__config_data['Sensors']['PyannoteVAD']['hf_token'])        
+                #Start with the less sensitive pipeline
+                self.__pyannote_pipeline = self.__pyannote_pipeline_ls
             
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
                 # self.__pyannote_model = Model.from_pretrained(
@@ -138,7 +154,16 @@ class GraceVAD:
 
             self.__logger.info('VAD thresh updated to %f.' % (self.__silero_vad_conf_thresh) )
 
-
+    def vadModelCallback(self,msg):
+        if(msg.data == self.__config_data['Sensors']['PyannoteVAD']['ls_model_code']):
+            self.__pyannote_pipeline = self.__pyannote_pipeline_ls
+            # self.__logger.info('Using LESS sensitive vad.')
+        elif(msg.data == self.__config_data['Sensors']['PyannoteVAD']['ms_model_code']):
+            self.__pyannote_pipeline = self.__pyannote_pipeline_ms
+            # self.__logger.info('Using MORE sensitive vad.')
+        else:
+            # self.__logger.info('PASS.')
+            pass
 
     def rawAudioCallback(self, msg):
 
