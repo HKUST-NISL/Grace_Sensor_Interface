@@ -67,6 +67,8 @@ class GraceVAD:
 
 
 
+        self.__vad_interval = 1 / self.__config_data['Sensors']['VAD']['yield_freq_hz']
+
         #Silero VAD model
         if(self.__config_data['Sensors']['SileroVAD']['enabled']):
             torchaudio.set_audio_backend(self.__config_data['Sensors']['SileroVAD']['audio_backend'])
@@ -166,9 +168,10 @@ class GraceVAD:
             pass
 
     def rawAudioCallback(self, msg):
+        self.__logger.debug("VAD: received new sound.")
 
         #Pre-process chunk
-        newsound= np.frombuffer(msg.data,np.int16)
+        newsound = np.frombuffer(msg.data,np.int16)
 
         '''
         Run vad over the chunk
@@ -185,7 +188,21 @@ class GraceVAD:
             if(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 0):
                 # This is the routine for vad pipeline
                 segments = output.get_timeline().support()
-                vad_flag = len(segments)>0
+                num_seg = len(segments)
+                if(num_seg == 0):
+                    vad_flag = False
+                    self.__logger.debug("VAD: no speech seg found in the window.")
+                else:
+                    #Check latest speech
+                    latest_speech_stamp = segments[num_seg - 1].end
+                    #Compare that with the window size
+                    #note we take absolute value here
+                    temporal_dist = abs((self.__config_data['Sensors']['VAD']['window_size_ms'] / 1000) - latest_speech_stamp)
+                    if(temporal_dist < self.__vad_interval - self.__config_data['Sensors']['PyannoteVAD']['estimated_proc_time']):
+                        vad_flag = True
+                    else:
+                        vad_flag = False
+                    self.__logger.debug("VAD: closest speech seg ends %5f seconds ago.", temporal_dist)
 
             elif(self.__config_data['Sensors']['PyannoteVAD']['pipeline_opt'] == 1):
                 # # This is the routine for segmentation pipeline
