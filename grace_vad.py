@@ -198,7 +198,8 @@ class GraceVAD:
                     #Compare that with the window size
                     #note we take absolute value here
                     temporal_dist = abs((self.__config_data['Sensors']['VAD']['window_size_ms'] / 1000) - latest_speech_stamp)
-                    if(temporal_dist < self.__vad_interval - self.__config_data['Sensors']['PyannoteVAD']['estimated_proc_time']):
+                    # if(temporal_dist < self.__vad_interval - self.__config_data['Sensors']['PyannoteVAD']['estimated_proc_time']):
+                    if(temporal_dist < self.__config_data['Sensors']['PyannoteVAD']['vad_tol_time']):
                         vad_flag = True
                     else:
                         vad_flag = False
